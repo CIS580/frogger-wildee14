@@ -6,17 +6,23 @@ const Game = require('./game.js');
 const Player = require('./player.js');
 const EntityManager = require('./entity.js');
 const Enemy = require('./enemy.js')
+const Log = require('./log.js');
 /* Global variables */
 var canvas = document.getElementById('screen');
 var game = new Game(canvas, update, render);
 var player = new Player({x: 0, y: 240})
 var entity = new EntityManager();
-var enemy1 = new Enemy({x:150, y: 0},1)
-var enemy2 = new Enemy({x:380, y: 0},2)
-var enemy3 = new Enemy({x:580, y: 0},3)
+var enemy1 = new Enemy({x:150, y: 0},Math.floor(Math.random()*4))
+var friendlyLily = new Log({x:343, y:480 })
+var enemy3 = new Enemy({x:580, y: 0},Math.floor(Math.random()*4))
 var background = new Image();
 background.src = encodeURI("assets/background.png");
 
+
+// entity.add(player);
+// entity.add(enemy1);
+// entity.add(enemy2);
+// entity.add(enemy3);
 
 /**
  * @function masterLoop
@@ -41,9 +47,12 @@ masterLoop(performance.now());
 function update(elapsedTime) {
   player.update(elapsedTime);
   enemy1.update(elapsedTime);
-  enemy2.update(elapsedTime);
+  var check1 = entity.checkForApple(player, enemy1);
+  if (check1) player.loseLife();
   enemy3.update(elapsedTime);
-  // TODO: Update the game objects
+  var check3 = entity.checkForApple(player, enemy3);
+  if (check3) player.loseLife();
+  friendlyLily.update();
 }
 
 /**
@@ -57,13 +66,13 @@ function render(elapsedTime, ctx) {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(background,0,0);
   enemy1.render(elapsedTime, ctx);
-  enemy2.render(elapsedTime, ctx);
+  friendlyLily.render(elapsedTime, ctx);
   enemy3.render(elapsedTime, ctx);
   player.render(elapsedTime, ctx);
 
 }
 
-},{"./enemy.js":2,"./entity.js":3,"./game.js":4,"./player.js":5}],2:[function(require,module,exports){
+},{"./enemy.js":2,"./entity.js":3,"./game.js":4,"./log.js":5,"./player.js":6}],2:[function(require,module,exports){
 "use strict";
 
 const MS_PER_FRAME = 1000/8;
@@ -101,9 +110,8 @@ function Enemy(position, colorNum) {
  * {DOMHighResTimeStamp} time the elapsed time since the last frame
  */
 Enemy.prototype.update = function(time) {
- if(this.y >= 280)
-  this.y--;
- else this.y++;
+  if(this.y>=-70) this.y = this.y - 2;
+  else this.y = 490;
 }
 
 /**
@@ -188,93 +196,19 @@ EntityManager.prototype.render = function(elapsedTime, context, viewport) {
   }
 }
 
-function testForRectCollision(r1, r2) {
+EntityManager.prototype.testForRectCollision= function(r1, r2) {
   return !( r1.x > r2.x + r2.width ||
             r1.x + r1.width < r2.width ||
             r1.y > r2.y + r2.height ||
             r1.y + r1.height < r2.y
           );
 }
-
-EntityManager.prototype.queryRect = function(x, y, width, height) {
-  var results = [];
-
-  // Min x range
-  var xMin = Math.floor(x / this.cellSize);
-  xMin = (xMin > 0) ? xMin : 0;
-
-  // Max x range
-  var xMax = Math.ceil((x + width)/this.cellSize) + 1;
-  xMax = (xMax < this.widthInCells) ? xMax : this.widthInCells;
-
-  // Min y range
-  var yMin = Math.floor(y / this.cellSize);
-  yMin = (yMin > 0) ? yMin : 0;
-
-  // Max y range
-  var yMax = Math.ceil((y + height)/this.cellSize) + 1;
-  yMax = (yMax < this.widthInCells) ? yMax : this.widthInCells;
-
-  // iterate over included cells
-  for(var x = xMin; x < xMax; x++) {
-    for(var y = yMin; y < yMax; y++) {
-      results.concat(
-        this.cells[y * this.widthInCells + x].filter(function(entity) {
-          return testForRectCollision(entity, {x: x, y: y, width: width, height: height});
-        }
-      ));
-    }
-  }
-  return results;
-}
-
-EntityManager.prototype.processCollisions = function(callback) {
-  this.cells.forEach(function(cell, index){
-
-    // Check for collisions between entities within this cell
-    cell.forEach(function(entity1){
-      cell.forEach(function(entity2){
-        if(entity1 !== entity2 && testForRectCollision(entity1, entity1))
-          callback(entity1, entity2);
-      });
-    });
-
-    // Check for collisions between entities within this cell
-    // and its neighbor to the right
-    if((index + 1) % this.widthInCells != 0) {
-      cell.forEach(function(entity1){
-        this.cells[index+1].forEach(function(entity2){
-          if(entity1 !== entity2 && testForRectCollision(entity1, entity1))
-            callback(entity1, entity2);
-        });
-      });
-    }
-
-    // Check for collisions between entities within this cell
-    // and the cell beneath it
-    if(index >= this.numberOfCells - this.widthInCells) {
-      cell.forEach(function(entity1){
-        this.cells[index+this.widthInCells].forEach(function(entity2){
-          if(entity1 !== entity2 && testForRectCollision(entity1, entity1))
-            callback(entity1, entity2);
-        });
-      });
-    }
-
-    // Check for collisions between entities within this cell
-    // and the cell diagonally beneath to the right
-    if((index + 2) % this.widthInCells != 0 && index >= this.numberOfCells - this.widthInCells) {
-      cell.forEach(function(entity1){
-        this.cells[index+this.widthInCells+1].forEach(function(entity2){
-          if(entity1 !== entity2 && testForRectCollision(entity1, entity1))
-            callback(entity1, entity2);
-        });
-      });
-    }
-
-  });
-
-}
+EntityManager.prototype.checkForApple = function(r1, r2) {
+  if ( ( Math.pow(r1.x - r2.x, 2) +
+         Math.pow(r1.y - r2.y, 2)) < 20)
+    //Update score
+    return true;
+  };
 
 function EntityManager(width, height, cellSize) {
   this.cellSize = cellSize;
@@ -361,6 +295,64 @@ Game.prototype.loop = function(newTime) {
 const MS_PER_FRAME = 1000/8;
 
 /**
+ * @module exports the Log class
+ */
+module.exports = exports = Log;
+
+/**
+ * @constructor Log
+ * Creates a new Log object
+ * @param {Postition} position object specifying an x and y
+ */
+function Log(position) {
+  this.state = "idle";
+  this.x = position.x;
+  this.y = position.y;
+  this.movementY = 0;
+  this.movementX = 0;
+  this.width  = 250;
+  this.height = 250;
+  this.showWidth  = this.width/2 ;
+  this.showHeight = this.height/2 ;
+  this.spritesheet  = new Image();
+  this.spritesheet.src = encodeURI('assets/lilypad.png');
+  this.timer = 0;
+}
+
+
+
+/**
+ * @function updates the Log object
+ * {DOMHighResTimeStamp} time the elapsed time since the last frame
+ */
+Log.prototype.update = function(time) {
+  if(this.y<=480) this.y = this.y + 2;
+  else this.y = -20;
+
+}
+
+
+/**
+ * @function renders the Log into the provided context
+ * {DOMHighResTimeStamp} time the elapsed time since the last frame
+ * {CanvasRenderingContext2D} ctx the context to render into
+ */
+Log.prototype.render = function(time, ctx) {
+      ctx.drawImage(
+        // image
+        this.spritesheet,
+        // destination rectangle
+        this.x, this.y, this.showWidth, this.showHeight
+      );
+
+}
+
+},{}],6:[function(require,module,exports){
+"use strict";
+
+const MS_PER_FRAME = 1000/8;
+
+/**
  * @module exports the Player class
  */
 module.exports = exports = Player;
@@ -372,6 +364,7 @@ module.exports = exports = Player;
  */
 function Player(position) {
   this.lives = 3;
+  this.level = 1;
   this.state = "idle";
   this.x = position.x;
   this.y = position.y;
@@ -394,7 +387,12 @@ function Player(position) {
     frame = 6, pixels: x 128 -> 192 , y 64 -> 0 wink
     frame = 7, pixels: x 192 -> 256 , y 64 -> 0   wait
   */
+  this.frogSprites = [];
 
+  for(var i = 0; i < 4; i++){
+    this.frogSprites.push(new Image());
+    this.frogSprites[i].src = encodeURI('assets/PlayerSprite' + i + '.png');
+  }
 
 var self = this;
 
@@ -440,10 +438,27 @@ window.onkeyup = function(event) {
   self.movementX = 0;
   self.movementY = 0;
   if(self.x>760 || self.x<0 || self.y>480 || self.y<0) self.state = "death";
+  else if (self.x >660 && self.x < 760) self.state = "win";
   else self.state = "idle";
 }
 
+
+
 }
+
+Player.prototype.loseLife = function() {
+  this.movementX = 0;
+  this.movementY = 0;
+  this.x = 2;
+  this.y = 150;
+  this.lives--;
+  console.log(this.lives);
+  if (this.lives <= 0)
+     document.getElementById('score').innerHTML = "Game Over!";
+  else document.getElementById('score').innerHTML =
+       "Lives "+ this.lives + " Level: "+ this.level;
+}
+
 /**
  * @function updates the player object
  * {DOMHighResTimeStamp} time the elapsed time since the last frame
@@ -466,21 +481,24 @@ Player.prototype.update = function(time) {
        this.frame += 1;
        if(this.frame > 3) this.frame = 0;
      }
-     this.x += this.movementX;
-     this.y += this.movementY;
+     if (this.movementX!= 0) this.x += this.movementX*this.level;
+     else this.y += this.movementY*this.level;
      break;
 
     case "death":
-     this.movementX = 0;
-     this.movementY = 0;
-     this.x = 0;
-     this.y = 150;
-     this.lives--;
-     console.log(this.lives);
-     if (this.lives <= 0)
-        document.getElementById('score').innerHTML = "Game Over!";
-     else document.getElementById('score').innerHTML = "Lives "+ this.lives;
-     break
+     this.loseLife();
+     break;
+
+     case "win":
+       this.movementX = 0;
+       this.movementY = 0;
+       this.x = 2;
+       this.y = 150;
+       document.getElementById('score').innerHTML = "You Win this round";
+       this.level++;
+       break;
+    
+
   }
 }
 
@@ -510,8 +528,8 @@ Player.prototype.render = function(time, ctx) {
         // image
         this.spritesheet,
         // source rectangle
-        this.frame * 64, 64, this.width, this.height,
-        // destination rectangle
+        this.frame * 64, 0 , this.width, this.height,
+         // destination rectangle
         this.x, this.y, this.width, this.height
       );
       break;

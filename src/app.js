@@ -5,17 +5,23 @@ const Game = require('./game.js');
 const Player = require('./player.js');
 const EntityManager = require('./entity.js');
 const Enemy = require('./enemy.js')
+const Log = require('./log.js');
 /* Global variables */
 var canvas = document.getElementById('screen');
 var game = new Game(canvas, update, render);
 var player = new Player({x: 0, y: 240})
 var entity = new EntityManager();
-var enemy1 = new Enemy({x:150, y: 0},1)
-var enemy2 = new Enemy({x:380, y: 0},2)
-var enemy3 = new Enemy({x:580, y: 0},3)
+var enemy1 = new Enemy({x:150, y: 0},Math.floor(Math.random()*4))
+var friendlyLily = new Log({x:343, y:480 })
+var enemy3 = new Enemy({x:580, y: 0},Math.floor(Math.random()*4))
 var background = new Image();
 background.src = encodeURI("assets/background.png");
 
+
+// entity.add(player);
+// entity.add(enemy1);
+// entity.add(enemy2);
+// entity.add(enemy3);
 
 /**
  * @function masterLoop
@@ -40,9 +46,12 @@ masterLoop(performance.now());
 function update(elapsedTime) {
   player.update(elapsedTime);
   enemy1.update(elapsedTime);
-  enemy2.update(elapsedTime);
+  var check1 = entity.checkForApple(player, enemy1);
+  if (check1) player.loseLife();
   enemy3.update(elapsedTime);
-  // TODO: Update the game objects
+  var check3 = entity.checkForApple(player, enemy3);
+  if (check3) player.loseLife();
+  friendlyLily.update();
 }
 
 /**
@@ -56,7 +65,7 @@ function render(elapsedTime, ctx) {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(background,0,0);
   enemy1.render(elapsedTime, ctx);
-  enemy2.render(elapsedTime, ctx);
+  friendlyLily.render(elapsedTime, ctx);
   enemy3.render(elapsedTime, ctx);
   player.render(elapsedTime, ctx);
 

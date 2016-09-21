@@ -62,93 +62,19 @@ EntityManager.prototype.render = function(elapsedTime, context, viewport) {
   }
 }
 
-function testForRectCollision(r1, r2) {
+EntityManager.prototype.testForRectCollision= function(r1, r2) {
   return !( r1.x > r2.x + r2.width ||
             r1.x + r1.width < r2.width ||
             r1.y > r2.y + r2.height ||
             r1.y + r1.height < r2.y
           );
 }
-
-EntityManager.prototype.queryRect = function(x, y, width, height) {
-  var results = [];
-
-  // Min x range
-  var xMin = Math.floor(x / this.cellSize);
-  xMin = (xMin > 0) ? xMin : 0;
-
-  // Max x range
-  var xMax = Math.ceil((x + width)/this.cellSize) + 1;
-  xMax = (xMax < this.widthInCells) ? xMax : this.widthInCells;
-
-  // Min y range
-  var yMin = Math.floor(y / this.cellSize);
-  yMin = (yMin > 0) ? yMin : 0;
-
-  // Max y range
-  var yMax = Math.ceil((y + height)/this.cellSize) + 1;
-  yMax = (yMax < this.widthInCells) ? yMax : this.widthInCells;
-
-  // iterate over included cells
-  for(var x = xMin; x < xMax; x++) {
-    for(var y = yMin; y < yMax; y++) {
-      results.concat(
-        this.cells[y * this.widthInCells + x].filter(function(entity) {
-          return testForRectCollision(entity, {x: x, y: y, width: width, height: height});
-        }
-      ));
-    }
-  }
-  return results;
-}
-
-EntityManager.prototype.processCollisions = function(callback) {
-  this.cells.forEach(function(cell, index){
-
-    // Check for collisions between entities within this cell
-    cell.forEach(function(entity1){
-      cell.forEach(function(entity2){
-        if(entity1 !== entity2 && testForRectCollision(entity1, entity1))
-          callback(entity1, entity2);
-      });
-    });
-
-    // Check for collisions between entities within this cell
-    // and its neighbor to the right
-    if((index + 1) % this.widthInCells != 0) {
-      cell.forEach(function(entity1){
-        this.cells[index+1].forEach(function(entity2){
-          if(entity1 !== entity2 && testForRectCollision(entity1, entity1))
-            callback(entity1, entity2);
-        });
-      });
-    }
-
-    // Check for collisions between entities within this cell
-    // and the cell beneath it
-    if(index >= this.numberOfCells - this.widthInCells) {
-      cell.forEach(function(entity1){
-        this.cells[index+this.widthInCells].forEach(function(entity2){
-          if(entity1 !== entity2 && testForRectCollision(entity1, entity1))
-            callback(entity1, entity2);
-        });
-      });
-    }
-
-    // Check for collisions between entities within this cell
-    // and the cell diagonally beneath to the right
-    if((index + 2) % this.widthInCells != 0 && index >= this.numberOfCells - this.widthInCells) {
-      cell.forEach(function(entity1){
-        this.cells[index+this.widthInCells+1].forEach(function(entity2){
-          if(entity1 !== entity2 && testForRectCollision(entity1, entity1))
-            callback(entity1, entity2);
-        });
-      });
-    }
-
-  });
-
-}
+EntityManager.prototype.checkForApple = function(r1, r2) {
+  if ( ( Math.pow(r1.x - r2.x, 2) +
+         Math.pow(r1.y - r2.y, 2)) < 20)
+    //Update score
+    return true;
+  };
 
 function EntityManager(width, height, cellSize) {
   this.cellSize = cellSize;

@@ -14,6 +14,7 @@ module.exports = exports = Player;
  */
 function Player(position) {
   this.lives = 3;
+  this.level = 1;
   this.state = "idle";
   this.x = position.x;
   this.y = position.y;
@@ -36,7 +37,12 @@ function Player(position) {
     frame = 6, pixels: x 128 -> 192 , y 64 -> 0 wink
     frame = 7, pixels: x 192 -> 256 , y 64 -> 0   wait
   */
+  this.frogSprites = [];
 
+  for(var i = 0; i < 4; i++){
+    this.frogSprites.push(new Image());
+    this.frogSprites[i].src = encodeURI('assets/PlayerSprite' + i + '.png');
+  }
 
 var self = this;
 
@@ -82,10 +88,27 @@ window.onkeyup = function(event) {
   self.movementX = 0;
   self.movementY = 0;
   if(self.x>760 || self.x<0 || self.y>480 || self.y<0) self.state = "death";
+  else if (self.x >660 && self.x < 760) self.state = "win";
   else self.state = "idle";
 }
 
+
+
 }
+
+Player.prototype.loseLife = function() {
+  this.movementX = 0;
+  this.movementY = 0;
+  this.x = 2;
+  this.y = 150;
+  this.lives--;
+  console.log(this.lives);
+  if (this.lives <= 0)
+     document.getElementById('score').innerHTML = "Game Over!";
+  else document.getElementById('score').innerHTML =
+       "Lives "+ this.lives + " Level: "+ this.level;
+}
+
 /**
  * @function updates the player object
  * {DOMHighResTimeStamp} time the elapsed time since the last frame
@@ -108,21 +131,24 @@ Player.prototype.update = function(time) {
        this.frame += 1;
        if(this.frame > 3) this.frame = 0;
      }
-     this.x += this.movementX;
-     this.y += this.movementY;
+     if (this.movementX!= 0) this.x += this.movementX*this.level;
+     else this.y += this.movementY*this.level;
      break;
 
     case "death":
-     this.movementX = 0;
-     this.movementY = 0;
-     this.x = 0;
-     this.y = 150;
-     this.lives--;
-     console.log(this.lives);
-     if (this.lives <= 0)
-        document.getElementById('score').innerHTML = "Game Over!";
-     else document.getElementById('score').innerHTML = "Lives "+ this.lives;
-     break
+     this.loseLife();
+     break;
+
+     case "win":
+       this.movementX = 0;
+       this.movementY = 0;
+       this.x = 2;
+       this.y = 150;
+       document.getElementById('score').innerHTML = "You Win this round";
+       this.level++;
+       break;
+    
+
   }
 }
 
@@ -152,8 +178,8 @@ Player.prototype.render = function(time, ctx) {
         // image
         this.spritesheet,
         // source rectangle
-        this.frame * 64, 64, this.width, this.height,
-        // destination rectangle
+        this.frame * 64, 0 , this.width, this.height,
+         // destination rectangle
         this.x, this.y, this.width, this.height
       );
       break;

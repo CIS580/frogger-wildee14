@@ -35,9 +35,8 @@ function Enemy(position, colorNum) {
  * {DOMHighResTimeStamp} time the elapsed time since the last frame
  */
 Enemy.prototype.update = function(time) {
- if(this.y >= 280)
-  this.y--;
- else this.y++;
+  if(this.y>=-70) this.y = this.y - 2;
+  else this.y = 490;
 }
 
 /**

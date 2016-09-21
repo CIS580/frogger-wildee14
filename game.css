@@ -2,3 +2,16 @@ canvas#screen {
   border: 2px solid #333;
   box-shadow: 4px 4px 4px #777;
 }
+
+/*
+Rotating picture
+Credit goes to VLS http://stackoverflow.com/users/1936909/vls
+via the http://stackoverflow.com/questions/20061774/rotate-an-image-in-image-source-in-html
+*/
+.rotate90 {
+    -webkit-transform: rotate(90deg);
+    -moz-transform: rotate(90deg);
+    -o-transform: rotate(90deg);
+    -ms-transform: rotate(90deg);
+    transform: rotate(90deg);
+}
