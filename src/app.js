@@ -17,12 +17,6 @@ var enemy3 = new Enemy({x:580, y: 0},Math.floor(Math.random()*4))
 var background = new Image();
 background.src = encodeURI("assets/background.png");
 
-
-// entity.add(player);
-// entity.add(enemy1);
-// entity.add(enemy2);
-// entity.add(enemy3);
-
 /**
  * @function masterLoop
  * Advances the game in sync with the refresh rate of the screen
@@ -51,6 +45,12 @@ function update(elapsedTime) {
   enemy3.update(elapsedTime);
   var check3 = entity.checkForApple(player, enemy3);
   if (check3) player.loseLife();
+
+  //Check if frog is in water
+  if(player.x>340 && player.x < 400){
+    if( Math.abs(player.y- friendlyLily.y) > 200 )
+      player.loseLife();
+  }
   friendlyLily.update();
 }
 
@@ -62,11 +62,26 @@ function update(elapsedTime) {
   * @param {CanvasRenderingContext2D} ctx the context to render to
   */
 function render(elapsedTime, ctx) {
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(background,0,0);
-  enemy1.render(elapsedTime, ctx);
-  friendlyLily.render(elapsedTime, ctx);
-  enemy3.render(elapsedTime, ctx);
-  player.render(elapsedTime, ctx);
+  if(player.state != "over"){
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(background,0,0);
+    enemy1.render(elapsedTime, ctx);
+    friendlyLily.render(elapsedTime, ctx);
+    enemy3.render(elapsedTime, ctx);
+    player.render(elapsedTime, ctx);
+    ctx.fillText("Level: "+ this.level
+                        ,ctx.width*.40, ctx.height*.6);
+   }
+   else{
+     //game is over
+     ctx.fillRect(0,0,canvas.width, canvas.height);
+     ctx.drawImage(background,0,0);
+     ctx.font = "40pt Times New Roman";
+     ctx.strokeStyle = "#ffffff";
+     ctx.lineWidth = 0.1;
+     ctx.fillStyle = "#fff";
+     ctx.fillText("Game Over!"
+                         ,canvas.width*.35, canvas.height*.4);
 
+    }
 }

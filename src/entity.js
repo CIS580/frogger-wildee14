@@ -71,7 +71,7 @@ EntityManager.prototype.testForRectCollision= function(r1, r2) {
 }
 EntityManager.prototype.checkForApple = function(r1, r2) {
   if ( ( Math.pow(r1.x - r2.x, 2) +
-         Math.pow(r1.y - r2.y, 2)) < 20)
+         Math.pow(r1.y - r2.y, 2)) < 200)
     //Update score
     return true;
   };

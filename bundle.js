@@ -18,12 +18,6 @@ var enemy3 = new Enemy({x:580, y: 0},Math.floor(Math.random()*4))
 var background = new Image();
 background.src = encodeURI("assets/background.png");
 
-
-// entity.add(player);
-// entity.add(enemy1);
-// entity.add(enemy2);
-// entity.add(enemy3);
-
 /**
  * @function masterLoop
  * Advances the game in sync with the refresh rate of the screen
@@ -52,6 +46,12 @@ function update(elapsedTime) {
   enemy3.update(elapsedTime);
   var check3 = entity.checkForApple(player, enemy3);
   if (check3) player.loseLife();
+
+  //Check if frog is in water
+  if(player.x>340 && player.x < 400){
+    if( Math.abs(player.y- friendlyLily.y) > 200 )
+      player.loseLife();
+  }
   friendlyLily.update();
 }
 
@@ -63,13 +63,28 @@ function update(elapsedTime) {
   * @param {CanvasRenderingContext2D} ctx the context to render to
   */
 function render(elapsedTime, ctx) {
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(background,0,0);
-  enemy1.render(elapsedTime, ctx);
-  friendlyLily.render(elapsedTime, ctx);
-  enemy3.render(elapsedTime, ctx);
-  player.render(elapsedTime, ctx);
+  if(player.state != "over"){
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(background,0,0);
+    enemy1.render(elapsedTime, ctx);
+    friendlyLily.render(elapsedTime, ctx);
+    enemy3.render(elapsedTime, ctx);
+    player.render(elapsedTime, ctx);
+    ctx.fillText("Level: "+ this.level
+                        ,ctx.width*.40, ctx.height*.6);
+   }
+   else{
+     //game is over
+     ctx.fillRect(0,0,canvas.width, canvas.height);
+     ctx.drawImage(background,0,0);
+     ctx.font = "40pt Times New Roman";
+     ctx.strokeStyle = "#ffffff";
+     ctx.lineWidth = 0.1;
+     ctx.fillStyle = "#fff";
+     ctx.fillText("Game Over!"
+                         ,canvas.width*.35, canvas.height*.4);
 
+    }
 }
 
 },{"./enemy.js":2,"./entity.js":3,"./game.js":4,"./log.js":5,"./player.js":6}],2:[function(require,module,exports){
@@ -205,7 +220,7 @@ EntityManager.prototype.testForRectCollision= function(r1, r2) {
 }
 EntityManager.prototype.checkForApple = function(r1, r2) {
   if ( ( Math.pow(r1.x - r2.x, 2) +
-         Math.pow(r1.y - r2.y, 2)) < 20)
+         Math.pow(r1.y - r2.y, 2)) < 200)
     //Update score
     return true;
   };
@@ -331,7 +346,6 @@ Log.prototype.update = function(time) {
 
 }
 
-
 /**
  * @function renders the Log into the provided context
  * {DOMHighResTimeStamp} time the elapsed time since the last frame
@@ -387,40 +401,35 @@ function Player(position) {
     frame = 6, pixels: x 128 -> 192 , y 64 -> 0 wink
     frame = 7, pixels: x 192 -> 256 , y 64 -> 0   wait
   */
-  this.frogSprites = [];
 
-  for(var i = 0; i < 4; i++){
-    this.frogSprites.push(new Image());
-    this.frogSprites[i].src = encodeURI('assets/PlayerSprite' + i + '.png');
-  }
 
 var self = this;
 
 window.onkeydown = function(event) {
   event.preventDefault();
-
+  if (self.state == "over") return;
   switch(event.keyCode) {
     case 38:
     case 87:
-      self.movementY = -4;
+      self.movementY = -2;
       self.state = "hopping";
       break;
 
     case 40:
     case 83:
-      self.movementY = 4;
+      self.movementY = 2;
       self.state = "hopping";
       break;
 
     case 37:
     case 65:
-      self.movementX = -4;
+      self.movementX = -2;
       self.state = "hopping";
       break;
 
     case 39:
     case 68:
-      self.movementX = 4;
+      self.movementX = 2;
       self.state = "hopping";
       break;
 
@@ -437,12 +446,15 @@ window.onkeyup = function(event) {
   event.preventDefault();
   self.movementX = 0;
   self.movementY = 0;
-  if(self.x>760 || self.x<0 || self.y>480 || self.y<0) self.state = "death";
-  else if (self.x >660 && self.x < 760) self.state = "win";
+  if(self.state == "over") return;
+  if(self.x>760 || self.x<0 || self.y>480 || self.y<0) self.loseLife();
+  else if (self.x >660 && self.x < 760){
+         self.state = "win";
+         this.x = 2;
+         this.y = 150;
+  }
   else self.state = "idle";
 }
-
-
 
 }
 
@@ -450,11 +462,13 @@ Player.prototype.loseLife = function() {
   this.movementX = 0;
   this.movementY = 0;
   this.x = 2;
-  this.y = 150;
+  this.y = 350;
   this.lives--;
-  console.log(this.lives);
-  if (this.lives <= 0)
-     document.getElementById('score').innerHTML = "Game Over!";
+  if (this.lives <= 0){
+    document.getElementById('score').innerHTML = "Game Over! Level "+this.level;
+    this.state = "over";
+  }
+
   else document.getElementById('score').innerHTML =
        "Lives "+ this.lives + " Level: "+ this.level;
 }
@@ -485,19 +499,18 @@ Player.prototype.update = function(time) {
      else this.y += this.movementY*this.level;
      break;
 
-    case "death":
-     this.loseLife();
-     break;
-
      case "win":
-       this.movementX = 0;
-       this.movementY = 0;
-       this.x = 2;
-       this.y = 150;
        document.getElementById('score').innerHTML = "You Win this round";
        this.level++;
+       this.x = 2;
+       this.y = 300;
        break;
-    
+
+    case "over":
+      this.x = 300;
+      this.y = 300;
+      break;
+
 
   }
 }
@@ -510,6 +523,7 @@ Player.prototype.update = function(time) {
 Player.prototype.render = function(time, ctx) {
   switch(this.state) {
     case "idle":
+    case "win":
       this.spritesheet.src = encodeURI('assets/PlayerSprite1.png');
       ctx.drawImage(
         // image
@@ -535,7 +549,6 @@ Player.prototype.render = function(time, ctx) {
       break;
     case "death":
       this.spritesheet.src = encodeURI('assets/PlayerSprite3.png');
-      //image is 256 x 128
       ctx.drawImage(
         // image
         this.spritesheet,
@@ -545,6 +558,16 @@ Player.prototype.render = function(time, ctx) {
         this.x, this.y, this.width, this.height
       );
       break;
+    case "over":
+      ctx.fillRect(0,0,ctx.width, ctx.height);
+      ctx.font = "40pt Times New Roman";
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 0.1;
+      ctx.fillStyle = "#fff";
+      ctx.fillText("Game Over!"
+                          ,ctx.width*.35, ctx.height*.4);
+      ctx.fillText(("Level: "+ this.level)
+                          ,ctx.width*.40, ctx.height*.6);
 
   }
 }

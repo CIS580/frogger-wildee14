@@ -39,7 +39,6 @@ Log.prototype.update = function(time) {
 
 }
 
-
 /**
  * @function renders the Log into the provided context
  * {DOMHighResTimeStamp} time the elapsed time since the last frame
